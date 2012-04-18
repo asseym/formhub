@@ -75,28 +75,19 @@ def store_temp_file(data):
     return ret
 
 
-def publish_form(callback):
+def publish_form(callback, form):
     try:
-        return callback()
-    except (PyXFormError, XLSFormError) as e:
+        return callback(form)
+    except (PyXFormError, XLSFormError, AttributeError) as e:
+        # for AttributeError, form.publish returned None, not sure why...
         return {
             'type': 'alert-error',
             'text': unicode(e),
+            'xls': form.cleaned_xls_file,
         }
     except IntegrityError as e:
         return {
             'type': 'alert-error',
             'text': 'Form with this id already exists.',
-        }
-    except ValidationError as e:
-        # on clone invalid URL
-        return {
-            'type': 'alert-error',
-            'text': 'Invalid URL format.',
-        }
-    except AttributeError as e:
-        # form.publish returned None, not sure why...
-        return {
-            'type': 'alert-error',
-            'text': unicode(e),
+            'xls': form.cleaned_xls_file,
         }
