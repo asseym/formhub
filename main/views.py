@@ -98,14 +98,22 @@ def profile(request, username):
 
     # xlsform submission...
     if request.method == 'POST' and request.user.is_authenticated():
-        def set_form():
-            form = QuickConverter(request.POST, request.FILES)
+        form = QuickConverter(request.POST, request.FILES)
+        try:
+            form.get_xls_file()
+        except ValidationError as e:
+            # on clone invalid URL
+            return {
+                'type': 'alert-error',
+                'text': 'Invalid URL format.',
+            }
+        def set_form(form):
             survey = form.publish(request.user).survey
             return {
                 'type': 'alert-success',
                 'text': 'Successfully published %s.' % survey.id_string,
                 }
-        context.message = publish_form(set_form)
+        context.message = publish_form(set_form, form)
 
     # profile view...
     content_user = get_object_or_404(User, username=username)

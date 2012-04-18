@@ -177,21 +177,27 @@ class QuickConverterURL(forms.Form):
 
 class QuickConverter(QuickConverterFile, QuickConverterURL):
     validate = URLValidator(verify_exists=True)
+    cleaned_xls_file = None
 
-    def publish(self, user):
+    def get_xls_file(self):
         if self.is_valid():
-            cleaned_xls_file = self.cleaned_data['xls_file']
-            if not cleaned_xls_file:
+            self.cleaned_xls_file = self.cleaned_data['xls_file']
+            if not self.cleaned_xls_file:
                 cleaned_url = self.cleaned_data['xls_url']
-                cleaned_xls_file = urlparse(cleaned_url)
-                cleaned_xls_file = '_'.join(cleaned_xls_file.path.split('/')[-2:])
-                if cleaned_xls_file[-4:] != '.xls':
-                    cleaned_xls_file += '.xls'
-                cleaned_xls_file = upload_to(None, cleaned_xls_file, user.username)
+                self.cleaned_xls_file = urlparse(cleaned_url)
+                self.cleaned_xls_file = '_'.join(cself.leaned_xls_file.path.split('/')[-2:])
+                if self.cleaned_xls_file[-4:] != '.xls':
+                    self.cleaned_xls_file += '.xls'
+                self.cleaned_xls_file = upload_to(None, self.cleaned_xls_file, user.username)
                 self.validate(cleaned_url)
                 xls_data = ContentFile(urllib2.urlopen(cleaned_url).read())
-                cleaned_xls_file = default_storage.save(cleaned_xls_file, xls_data)
+                self.cleaned_xls_file = default_storage.save(self.cleaned_xls_file, xls_data)
+
+    def publish(self, user):
+        if not self.cleaned_xls_file:
+            self.get_xls_file()
+        if self.cleaned_xls_file:
             return DataDictionary.objects.create(
                 user=user,
-                xls=cleaned_xls_file
+                xls=self.cleaned_xls_file
                 )
