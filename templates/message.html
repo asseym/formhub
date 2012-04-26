@@ -4,8 +4,17 @@
             <a class="close" href="#" data-dismiss="alert">×</a>
             <p>{{ message.text|safe }}</p>
             {% if message.xls %}
-                <p>{{ message.xls }}</p>
+                <br>
+                <form action="." method="post" entype="">
+                    <input type="submit" class="btn large btn-primary" value="Report to admin" />
+                </form>
+
             {% endif %}
         </div>
     </div>
 </div>
+<script type="text/javascript">
+    //onclick: say thank you then 
+    //          hide the button
+
+</script>

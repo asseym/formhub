@@ -16,6 +16,7 @@ from odk_viewer.models.data_dictionary import upload_to
 from registration.forms import RegistrationFormUniqueEmail
 from registration.models import RegistrationProfile
 from utils.country_field import COUNTRIES
+#from django.core.mail import EmailMessage
 
 FORM_LICENSES_CHOICES = (
     ('No License', 'No License'),
@@ -201,3 +202,16 @@ class QuickConverter(QuickConverterFile, QuickConverterURL):
                 user=user,
                 xls=self.cleaned_xls_file
                 )
+"""
+class ReportToAdmin(forms.Form):
+    f = 'user.email'
+    t = 'support@formhub.org'
+    subject = ''
+    message = ''
+    filename = ""
+    content = ""
+    mimetype = 'application/xls'
+    email = EmailMessage(subject, message, f,[t], attachments = (filename,content,mimetype))
+    email.send()
+
+"""
