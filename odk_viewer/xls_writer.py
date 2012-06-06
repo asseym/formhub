@@ -30,7 +30,7 @@ class XlsWriter(object):
         self._generated_sheet_name_dict = {}
 
     def add_sheet(self, name):
-        unique_sheet_name = self._unique_name_for_xls(name)
+        unique_sheet_name = self._get_unique_sheet_name(name)
         sheet = self._workbook.add_sheet(unique_sheet_name)
         self._sheets[unique_sheet_name] = sheet
 
@@ -98,27 +98,22 @@ class XlsWriter(object):
     def _add_sheets(self):
         for e in self._data_dictionary.get_survey_elements():
             if isinstance(e, Section):
-                sheet_name = e.name
+                sheet_name = self._get_unique_sheet_name(e.name)
                 self.add_sheet(sheet_name)
                 for f in e.children:
                     if isinstance(f, Question) and\
                             not question_types_to_exclude(f.type):
                         self.add_column(sheet_name, f.name)
 
-    def _unique_name_for_xls(self, sheet_name):
-        # excel worksheet name limit seems to be 31 characters (30 to be safe)
-        unique_sheet_name = sheet_name[0:self.sheet_name_limit]
-        unique_sheet_name = self._generate_unique_sheet_name(unique_sheet_name)
-        self._generated_sheet_name_dict[sheet_name] = unique_sheet_name
-        return unique_sheet_name
-
-    def _generate_unique_sheet_name(self, sheet_name):
+    def _get_unique_sheet_name(self, sheet_name):
+        # truncate length to max allowed
+        new_sheet_name = sheet_name[0:self.sheet_name_limit]
         # check if sheet name exists
-        if(not self._sheets.has_key(sheet_name)):
-            return sheet_name
+        if(not self._sheets.has_key(new_sheet_name)):
+            return new_sheet_name
         else:
             i = 1
-            unique_name = sheet_name
+            unique_name = new_sheet_name
             while(self._sheets.has_key(unique_name)):
                 number_len = len(str(i))
                 allowed_name_len = self.sheet_name_limit - number_len
@@ -127,5 +122,7 @@ class XlsWriter(object):
                     unique_name = unique_name[0:allowed_name_len]
                 unique_name = "{0}{1}".format(unique_name, i)
                 i = i + 1
-            return unique_name
+            new_sheet_name = unique_name
+        self._generated_sheet_name_dict[sheet_name] = new_sheet_name
+        return new_sheet_name
 
