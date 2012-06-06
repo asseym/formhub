@@ -184,6 +184,7 @@ def xls_export(request, username, id_string):
     response['Content-Length'] = temp_file.tell()
     temp_file.close()
     return response
+    #return HttpResponse("Done")
 
 
 def zip_export(request, username, id_string):
