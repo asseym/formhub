@@ -1,6 +1,10 @@
 import settings
 from odk_viewer.models import ParsedInstance, DataDictionary
+from pyxform.section import Section, RepeatingSection
+from pyxform.survey import Survey
+from pyxform.question import Question
 from pandas import *
+from utils.export_tools import question_types_to_exclude
 
 xform_instances = settings.MONGO_DB.instances
 
@@ -8,9 +12,10 @@ def build_workbook_for(username, id_string):
     """
     Creates a workbook composed of multiple sheets
     """
+    w = WorkBook()
+    dd = DataDictionary.objects.get(user__username=username, id_string=id_string)
 
 
-    # get form elements to split repeats into separate sheets
 
 
     query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
@@ -54,8 +59,40 @@ class WorkBook(object):
     """
     XLS Workbook-like structure with a number of sheets
     """
-    def __init__(self):
-       pass
+    def __init__(self, username, id_string):
+        dd = DataDictionary.objects.get(user__username=username, id_string=id_string)
+
+        # the survey element/main sheet
+        default_sheet_name = None
+
+        # dictionary of sheet names with a list of columns/xpaths
+        survey_sections = {}
+
+        # get form elements to split repeats into separate sheets and everything else in the main sheet
+        for e in dd.get_survey_elements():
+            # check for a Section or sub-classes of
+            if isinstance(e, Section):
+                sheet_name = e.name
+
+                # if its a survey set the default sheet name
+                if isinstance(e, Survey):
+                    default_sheet_name = sheet_name
+                    survey_sections[default_sheet_name] = []
+
+                # if a repeat we use its name otherwise use default sheet name
+                if isinstance(e, RepeatingSection):
+                    sheet_name = e.name
+                    survey_sections[sheet_name] = []
+                else:
+                    sheet_name = default_sheet_name
+
+                # for each child add to sheet
+                for c in e.children:
+                    if isinstance(c, Question) and not question_types_to_exclude(c.type):
+                        survey_sections[sheet_name].append(c.get_abbreviated_xpath())
+
+        # for each survey section get mongo db data and create sheet
+
 
     def add_sheet(self, sheet):
         self.sheets.append(sheet)
