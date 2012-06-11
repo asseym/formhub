@@ -40,9 +40,6 @@ class Sheet(object):
         self.columns = columns
         self.dataframe = DataFrame(data, columns=columns)
 
-    def get_name(self):
-        return self.name
-
     def get_num_columns(self):
         return len(self.columns)
 
@@ -62,15 +59,22 @@ class WorkBook(object):
     def __init__(self, username, id_string):
         self.username = username
         self.id_string = id_string
+        self.sheets = {}
 
         # dictionary of sheet names with a list of columns/xpaths
         self.survey_sections = self._generate_survey_sections()
 
         # for each survey section get mongo db data and create sheet
-        #for sheet_name, sheet_columns in survey_sections.iteritems():
+        for sheet_name, sheet_columns in self.survey_sections.iteritems():
             # get mongo data matching username/id_string but only select sheet_columns
-        #    query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
-        #    cursor = xform_instances.find(query, select_columns)
+            select_columns = dict([(c, 1) for c in sheet_columns])
+            query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
+            cursor = xform_instances.find(query, select_columns)
+            data = [r for r in cursor]
+
+            # add a sheet
+            sheet = Sheet(data, sheet_columns)
+            self.add_sheet(sheet_name, sheet)
 
     def _generate_survey_sections(self):
         dd = DataDictionary.objects.get(user__username=self.username, id_string=self.id_string)
@@ -106,14 +110,14 @@ class WorkBook(object):
 
         return survey_sections
 
-    def add_sheet(self, sheet):
-        self.sheets.append(sheet)
+    def add_sheet(self, name, sheet):
+        self.sheets[name] = sheet
 
     def get_num_sheets(self):
         return len(self.sheets)
 
-    def get_sheet_at(self, index):
-        return self.sheets[index]
+    def get_sheet(self, name):
+        return self.sheets[name]
 
 
 class WorkbookExporter(object):
