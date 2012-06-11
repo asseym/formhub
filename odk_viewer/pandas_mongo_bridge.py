@@ -60,7 +60,20 @@ class WorkBook(object):
     XLS Workbook-like structure with a number of sheets
     """
     def __init__(self, username, id_string):
-        dd = DataDictionary.objects.get(user__username=username, id_string=id_string)
+        self.username = username
+        self.id_string = id_string
+
+        # dictionary of sheet names with a list of columns/xpaths
+        self.survey_sections = self._generate_survey_sections()
+
+        # for each survey section get mongo db data and create sheet
+        #for sheet_name, sheet_columns in survey_sections.iteritems():
+            # get mongo data matching username/id_string but only select sheet_columns
+        #    query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
+        #    cursor = xform_instances.find(query, select_columns)
+
+    def _generate_survey_sections(self):
+        dd = DataDictionary.objects.get(user__username=self.username, id_string=self.id_string)
 
         # the survey element/main sheet
         default_sheet_name = None
@@ -91,8 +104,7 @@ class WorkBook(object):
                     if isinstance(c, Question) and not question_types_to_exclude(c.type):
                         survey_sections[sheet_name].append(c.get_abbreviated_xpath())
 
-        # for each survey section get mongo db data and create sheet
-
+        return survey_sections
 
     def add_sheet(self, sheet):
         self.sheets.append(sheet)
