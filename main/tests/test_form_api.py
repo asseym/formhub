@@ -21,18 +21,18 @@ class TestFormAPI(MainTestCase):
         response = self.client.get(self.api_url, {})
         self.assertEqual(response.status_code, 200)
         d = dict_for_mongo(
-                self.xform.surveys.all()[0].parsed_instance.to_dict())
+                self.xform.surveys.all()[0].parsed_instance.to_dict(flat=False))
         find_d = simplejson.loads(response.content)[0]
         self.assertEqual(sorted(find_d, key=find_d.get), sorted(d, key=d.get))
 
     def test_api_with_query(self):
         # query string
-        json = '{"transport/available_transportation_types_to_referral_facility":"none"}'
+        json = '{"transportation.transport.available_transportation_types_to_referral_facility":"none"}'
         data = {'query': json}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
         d = dict_for_mongo(
-                self.xform.surveys.all()[0].parsed_instance.to_dict())
+                self.xform.surveys.all()[0].parsed_instance.to_dict(flat=False))
         find_d = simplejson.loads(response.content)[0]
         self.assertEqual(sorted(find_d, key=find_d.get), sorted(d, key=d.get))
 
@@ -60,24 +60,24 @@ class TestFormAPI(MainTestCase):
         end = response.content.__len__() - 1
         content = response.content[start: end]
         d = dict_for_mongo(
-                self.xform.surveys.all()[0].parsed_instance.to_dict())
+                self.xform.surveys.all()[0].parsed_instance.to_dict(flat=False))
         find_d = simplejson.loads(content)[0]
         self.assertEqual(sorted(find_d, key=find_d.get), sorted(d, key=d.get))
 
     def test_api_with_query_start_limit(self):
         # query string
-        json = '{"transport/available_transportation_types_to_referral_facility":"none"}'
+        json = '{"transportation.transport.available_transportation_types_to_referral_facility":"none"}'
         data = {'query': json, 'start': 0, 'limit': 10}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
         d = dict_for_mongo(
-            self.xform.surveys.all()[0].parsed_instance.to_dict())
+            self.xform.surveys.all()[0].parsed_instance.to_dict(flat=False))
         find_d = simplejson.loads(response.content)[0]
         self.assertEqual(sorted(find_d, key=find_d.get), sorted(d, key=d.get))
 
     def test_api_count(self):
         # query string
-        json = '{"transport/available_transportation_types_to_referral_facility":"none"}'
+        json = '{"transportation.transport.available_transportation_types_to_referral_facility":"none"}'
         data = {'query': json, 'count': 1}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
@@ -87,11 +87,13 @@ class TestFormAPI(MainTestCase):
 
     def test_api_column_select(self):
         # query string
-        json = '{"transport/available_transportation_types_to_referral_facility":"none"}'
-        columns = '["transport/available_transportation_types_to_referral_facility"]'
+        json = '{"transportation.transport.available_transportation_types_to_referral_facility":"none"}'
+        columns = '["transportation.transport.available_transportation_types_to_referral_facility"]'
         data = {'query': json, 'fields': columns}
         response = self.client.get(self.api_url, data)
         self.assertEqual(response.status_code, 200)
         find_d = simplejson.loads(response.content)[0]
-        self.assertTrue(find_d.has_key('transport/available_transportation_types_to_referral_facility'))
+        self.assertTrue(find_d.has_key('transportation'))
+        self.assertTrue(find_d["transportation"].has_key('transport'))
+        self.assertTrue(find_d["transportation"]["transport"].has_key('available_transportation_types_to_referral_facility'))
         self.assertFalse(find_d.has_key('_attachments'))
