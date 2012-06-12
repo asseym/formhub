@@ -102,7 +102,7 @@ class ParsedInstance(models.Model):
                 fields_to_select).skip(start).limit(limit)
 
     def to_dict_for_mongo(self):
-        d = dict_for_mongo(self.to_dict())
+        d = dict_for_mongo(self.to_dict(flat=False))
         d[self.USERFORM_ID] = u'%s_%s' % (self.instance.user.username,
                 self.instance.xform.id_string)
         return d
@@ -111,19 +111,18 @@ class ParsedInstance(models.Model):
         d = self.to_dict_for_mongo()
         xform_instances.save(d)
 
-    def to_dict(self):
-        if not hasattr(self, "_dict_cache"):
-            self._dict_cache = self.instance.get_dict()
-            self._dict_cache.update(
-                {
-                    UUID: self.instance.uuid,
-                    ID: self.instance.id,
-                    ATTACHMENTS: [a.media_file.name for a in\
-                            self.instance.attachments.all()],
-                    self.STATUS: self.instance.status,
-                    }
-                )
-        return self._dict_cache
+    def to_dict(self, flat=True):
+        dict = self.instance.get_dict(flat=flat)
+        dict.update(
+            {
+                UUID: self.instance.uuid,
+                ID: self.instance.id,
+                ATTACHMENTS: [a.media_file.name for a in\
+                        self.instance.attachments.all()],
+                self.STATUS: self.instance.status,
+            }
+        )
+        return dict
 
     @classmethod
     def dicts(cls, xform):
