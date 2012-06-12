@@ -57,7 +57,7 @@ def _encode_for_mongo(key):
 
 
 def _is_invalid_for_mongo(key):
-    return not key in key_whitelist and (key.startswith('$') or key.count('.') > 0)
+    return not key in key_whitelist and (key.startswith('$'))# or key.count('.') > 0)
 
 
 class ParsedInstance(models.Model):
