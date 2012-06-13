@@ -27,6 +27,7 @@ from utils.logger_tools import response_with_mimetype_and_name, publish_form
 from utils.decorators import is_owner
 from utils.user_auth import check_and_set_user, set_profile_data,\
          has_permission, get_xform_and_perms, check_and_set_user_and_form
+from odk_viewer.models.parsed_instance import flatten_mongo_cursor, nest_mongo_cursor
 
 def home(request):
     context = RequestContext(request)
@@ -249,7 +250,9 @@ def api(request, username=None, id_string=None):
         cursor = ParsedInstance.query_mongo(**args)
     except ValueError, e:
         return HttpResponseBadRequest(e.message)
-    records = list(record for record in cursor)
+    # if flat is explicitly false nest, otherwise flatten
+    records = nest_mongo_cursor(cursor) if request.GET.get("flat") == "false" \
+    else flatten_mongo_cursor(cursor)
     if 'callback' in request.GET and request.GET.get('callback') != '':
         callback = request.GET.get('callback')
         return HttpResponse("%s(%s)" % (callback, simplejson.dumps(records)), \
