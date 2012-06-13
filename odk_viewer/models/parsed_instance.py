@@ -57,8 +57,31 @@ def _encode_for_mongo(key):
 
 
 def _is_invalid_for_mongo(key):
-    return not key in key_whitelist and (key.startswith('$') or key.count('.') > 0)
+    return not key in key_whitelist and (key.startswith('$'))# or key.count('.') > 0)
 
+def _add_to_flatten(record, path=None):
+    flattened = {}
+    for k, v in record.iteritems():
+        new_path = k
+        if path is not None:
+            new_path = path + "." + k
+
+        # if v is a dict recurse
+        if type(v) is dict:
+            flattened.update(_add_to_flatten(v, new_path))
+        #TODO: how to handle nested lists/arrays
+        else:
+            flattened.update({
+                new_path: v
+            })
+            #print "flattened %s" % flattened
+    return flattened
+
+def flatten_mongo_cursor(cursor):
+    return [_add_to_flatten(r) for r in cursor]
+
+def nest_mongo_cursor(cursor):
+    return [r for r in cursor]
 
 class ParsedInstance(models.Model):
     USERFORM_ID = u'_userform_id'
@@ -89,31 +112,23 @@ class ParsedInstance(models.Model):
         if type(fields) == list and len(fields) > 0:
             fields_to_select = dict([(field, 1) for field in fields])
         sort = json.loads(sort, object_hook=json_util.object_hook) if sort else {}
+        cursor = None
         if count:
-            return [{"count":xform_instances.find(query,
+            cursor = [{"count":xform_instances.find(query,
                 fields_to_select).count()}]
         elif type(sort) == dict and len(sort) == 1:
             sort_key = sort.keys()[0]
             sort_dir = int(sort[sort_key]) # -1 for desc, 1 for asc
-            return xform_instances.find(query,
+            cursor = xform_instances.find(query,
                 fields_to_select).skip(start).limit(limit).sort(sort_key, sort_dir)
         else:
-            return xform_instances.find(query,
+            cursor = xform_instances.find(query,
                 fields_to_select).skip(start).limit(limit)
 
+        return cursor
+
     def to_dict_for_mongo(self):
-        d = self.instance.get_dict(flat=False)
-        #TODO: combine this with the duplicate code in to_dict
-        d.update(
-            {
-            UUID: self.instance.uuid,
-            ID: self.instance.id,
-            ATTACHMENTS: [a.media_file.name for a in\
-                          self.instance.attachments.all()],
-            self.STATUS: self.instance.status,
-            }
-        )
-        d = dict_for_mongo(d)
+        d = dict_for_mongo(self.to_dict(flat=False))
         d[self.USERFORM_ID] = u'%s_%s' % (self.instance.user.username,
                 self.instance.xform.id_string)
         return d
@@ -122,19 +137,18 @@ class ParsedInstance(models.Model):
         d = self.to_dict_for_mongo()
         xform_instances.save(d)
 
-    def to_dict(self):
-        if not hasattr(self, "_dict_cache"):
-            self._dict_cache = self.instance.get_dict()
-            self._dict_cache.update(
-                {
-                    UUID: self.instance.uuid,
-                    ID: self.instance.id,
-                    ATTACHMENTS: [a.media_file.name for a in\
-                            self.instance.attachments.all()],
-                    self.STATUS: self.instance.status,
-                    }
-                )
-        return self._dict_cache
+    def to_dict(self, flat=True):
+        dict = self.instance.get_dict(flat=flat)
+        dict.update(
+            {
+                UUID: self.instance.uuid,
+                ID: self.instance.id,
+                ATTACHMENTS: [a.media_file.name for a in\
+                        self.instance.attachments.all()],
+                self.STATUS: self.instance.status,
+            }
+        )
+        return dict
 
     @classmethod
     def dicts(cls, xform):

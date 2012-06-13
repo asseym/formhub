@@ -23,7 +23,7 @@ var app; // sammy app
 var questions = {};
 var languages = [];
 // TODO: this re should only accept valid js variable names so numbers/letter/underscore
-var cleanRe = /[\[\]\/]/g; // regular expression used to clean names with slashes
+var cleanRe = /[\[\]\/\.]/g; // replace any of [ ] / . with "cleanReplacement"
 var cleanReplacement = '_';
 var positionTpl = "Record {pos} of {total}";
 var numRecords = null;
@@ -90,7 +90,7 @@ Question.prototype.getLabel = function(language)
   /// load form structure
   $.getJSON(formJSONUrl)
       .success(function(data){
-              parseQuestions(data.children);
+              parseQuestions(data.children, data.name);
               parseLanguages(data.children);
               // load count
               $.getJSON(mongoAPIUrl, {'count': 1})
@@ -306,18 +306,18 @@ function createTable()
 
 function parseQuestions(children, prefix)
 {
-    var idx;
+    var idx, newPrefix;
     for(idx in children)
     {
       var question = children[idx];
+      newPrefix = prefix + "_" + question.name;
       if(question.hasOwnProperty('children') && question.type == "group")
       {
-          parseQuestions(question.children, (question.name + cleanReplacement));
+          parseQuestions(question.children, newPrefix);
       }
       else
       {
-          // TODO: question class that has accessor mesthods for type, label, language etc
-          questions[((prefix?prefix:'') + question.name)] = new Question(question);
+          questions[newPrefix] = new Question(question);
       }
     }
 }
@@ -342,6 +342,8 @@ function parseLanguages(children)
             }
             break;
         }
+        else if(question["type"]=="group")
+            parseLanguages(question.children)
     }
 }
 </script>

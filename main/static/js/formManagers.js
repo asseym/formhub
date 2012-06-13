@@ -18,9 +18,10 @@ FormJSONManager = function(url, callback)
 
 FormJSONManager.prototype.loadFormJSON = function()
 {
-    var thisManager = this;
+    var thisManager = this, surveyName;
     $.getJSON(thisManager.url, function(data){
-        thisManager._parseQuestions(data[constants.CHILDREN]);
+        surveyName = data.name;
+        thisManager._parseQuestions(data[constants.CHILDREN], surveyName);
         thisManager._parseSupportedLanguages();
         thisManager.callback.call(thisManager);
     });
@@ -34,7 +35,7 @@ FormJSONManager.prototype._parseQuestions = function(questionData, parentQuestio
         var question = questionData[idx];
         var questionName = question[constants.NAME];
         if(parentQuestionName && parentQuestionName !== "")
-            questionName = parentQuestionName + "/" + questionName;
+            questionName = parentQuestionName + "." + questionName;
         question[constants.NAME] = questionName;
 
         if(question[constants.TYPE] != "group")
@@ -112,6 +113,8 @@ FormJSONManager.prototype._parseSupportedLanguages = function()
             }
             break;
         }
+        else if(question[constants.TYPE]=="group")
+            this.parseLanguages(question.children)
     }
 };
 
