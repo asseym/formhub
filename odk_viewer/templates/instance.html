@@ -342,6 +342,8 @@ function parseLanguages(children)
             }
             break;
         }
+        else if(question["type"]=="group")
+            parseLanguages(question.children)
     }
 }
 </script>
