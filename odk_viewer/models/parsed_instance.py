@@ -80,7 +80,7 @@ def _add_to_flatten(record, path=None):
 def flatten_mongo_cursor(cursor):
     return [_add_to_flatten(r) for r in cursor]
 
-def nested_mongo_cursor(cursor):
+def nest_mongo_cursor(cursor):
     return [r for r in cursor]
 
 class ParsedInstance(models.Model):
