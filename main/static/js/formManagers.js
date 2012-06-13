@@ -113,6 +113,8 @@ FormJSONManager.prototype._parseSupportedLanguages = function()
             }
             break;
         }
+        else if(question[constants.TYPE]=="group")
+            this.parseLanguages(question.children)
     }
 };
 
