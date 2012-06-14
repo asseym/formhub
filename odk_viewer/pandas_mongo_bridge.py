@@ -5,12 +5,18 @@ from pyxform.survey import Survey
 from pyxform.question import Question
 from pandas import *
 from utils.export_tools import question_types_to_exclude
+from odk_viewer.models.parsed_instance import flatten_mongo_cursor
+import re
 
 xform_instances = settings.MONGO_DB.instances
 
+def xpath_to_dot_notation(xpath):
+    # convert slashes to dots for mongo query
+    return re.sub("/", ".", xpath[1:]) # slice remove initial slash i.e. /survey/question to survey/question
+
 class Sheet(object):
     """
-    Represents a single row/column data structure essentially a single DataFrame object
+    Represents a single row->column data structure essentially a single pandas DataFrame object
     """
 
     def __init__(self, data, columns):
@@ -50,10 +56,11 @@ class WorkBook(object):
         # for each survey section get mongo db data and create sheet
         for sheet_name, sheet_columns in self.survey_sections.iteritems():
             # get mongo data matching username/id_string but only select sheet_columns
-            select_columns = dict([(c, 1) for c in sheet_columns])
+            select_columns = dict([(str(c), 1) for c in sheet_columns])#str to convert from unicode as mongo dont like uicode
             query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
             cursor = xform_instances.find(query, select_columns)
-            data = [r for r in cursor]
+            #flatten cursor data
+            data = flatten_mongo_cursor(cursor)
 
             # add a sheet
             sheet = Sheet(data, sheet_columns)
@@ -63,6 +70,7 @@ class WorkBook(object):
         dd = DataDictionary.objects.get(user__username=self.username, id_string=self.id_string)
 
         # the survey element/main sheet
+        #TODO: find a way to set this here instead of waiting for it to be caught in the loop, bad things could happen
         default_sheet_name = None
 
         # dictionary of sheet names with a list of columns/xpaths
@@ -79,17 +87,20 @@ class WorkBook(object):
                     default_sheet_name = sheet_name
                     survey_sections[default_sheet_name] = []
 
-                # if a repeat we use its name otherwise use default sheet name
+                # if a repeat we use its name
                 if isinstance(e, RepeatingSection):
                     sheet_name = e.name
                     survey_sections[sheet_name] = []
+                #otherwise use default sheet name
                 else:
                     sheet_name = default_sheet_name
 
-                # for each child add to sheet
+                # if a RepeatingSection, only set the parent's xpath dot notated name as the only column
+
+                # for each child add to survey_sections
                 for c in e.children:
                     if isinstance(c, Question) and not question_types_to_exclude(c.type):
-                        survey_sections[sheet_name].append(c.get_abbreviated_xpath())
+                        survey_sections[sheet_name].append(xpath_to_dot_notation(c.get_xpath()))
 
         return survey_sections
 
