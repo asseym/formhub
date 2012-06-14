@@ -90,17 +90,16 @@ class WorkBook(object):
                 # if a repeat we use its name
                 if isinstance(e, RepeatingSection):
                     sheet_name = e.name
-                    survey_sections[sheet_name] = []
+                    # if a RepeatingSection, only set the xpath dot notated name as the only column,
+                    # data will come as a list which we will then flatten as required
+                    survey_sections[sheet_name] = [xpath_to_dot_notation(e.get_xpath())]
                 #otherwise use default sheet name
                 else:
                     sheet_name = default_sheet_name
-
-                # if a RepeatingSection, only set the parent's xpath dot notated name as the only column
-
-                # for each child add to survey_sections
-                for c in e.children:
-                    if isinstance(c, Question) and not question_types_to_exclude(c.type):
-                        survey_sections[sheet_name].append(xpath_to_dot_notation(c.get_xpath()))
+                    # for each child add to survey_sections
+                    for c in e.children:
+                        if isinstance(c, Question) and not question_types_to_exclude(c.type):
+                            survey_sections[sheet_name].append(xpath_to_dot_notation(c.get_xpath()))
 
         return survey_sections
 
