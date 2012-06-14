@@ -92,26 +92,19 @@ class XlsWriter(object):
         self._data_dictionary = data_dictionary
         self.reset_workbook()
         self._add_sheets()
-        #observations = self._data_dictionary.add_surveys()
-        #for obs in observations:
-        #    self.add_obs(obs)
+        observations = self._data_dictionary.add_surveys()
+        for obs in observations:
+            self.add_obs(obs)
 
     def _add_sheets(self):
         for e in self._data_dictionary.get_survey_elements():
-            if isinstance(e, Section) and not isinstance(e, GroupedSection):
+            if isinstance(e, Section):
                 sheet_name = self._get_unique_sheet_name(e.name)
                 self.add_sheet(sheet_name)
-                #TODO: can we have nested groups in groups
                 for f in e.children:
                     if isinstance(f, Question) and\
                             not question_types_to_exclude(f.type):
                         self.add_column(sheet_name, f.name)
-                    elif isinstance(f, GroupedSection):
-                        for c in f.children:
-                            if isinstance(c, Question) and\
-                                not question_types_to_exclude(c.type):
-                                self.add_column(sheet_name, c.get_abbreviated_xpath())
-
 
     def _get_unique_sheet_name(self, sheet_name):
         # truncate length to max allowed
