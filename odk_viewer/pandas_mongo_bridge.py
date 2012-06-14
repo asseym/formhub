@@ -53,15 +53,14 @@ class WorkBook(object):
         # dictionary of sheet names with a list of columns/xpaths
         self.survey_sections = self._generate_survey_sections()
 
+        # get mongo data matching username/id_string
+        query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
+        cursor = xform_instances.find(query)
+        #flatten cursor data
+        data = flatten_mongo_cursor(cursor)
+
         # for each survey section get mongo db data and create sheet
         for sheet_name, sheet_columns in self.survey_sections.iteritems():
-            # get mongo data matching username/id_string but only select sheet_columns
-            select_columns = dict([(str(c), 1) for c in sheet_columns])#str to convert from unicode as mongo dont like uicode
-            query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
-            cursor = xform_instances.find(query, select_columns)
-            #flatten cursor data
-            data = flatten_mongo_cursor(cursor)
-
             # add a sheet
             sheet = Sheet(data, sheet_columns)
             self.add_sheet(sheet_name, sheet)
