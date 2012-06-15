@@ -34,7 +34,7 @@ FormJSONManager.prototype._parseQuestions = function(questionData, parentQuestio
         var question = questionData[idx];
         var questionName = question[constants.NAME];
         if(parentQuestionName && parentQuestionName !== "")
-            questionName = parentQuestionName + "." + questionName;
+            questionName = questionName;
         question[constants.NAME] = questionName;
 
         if(question[constants.TYPE] != "group")
