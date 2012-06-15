@@ -20,8 +20,7 @@ FormJSONManager.prototype.loadFormJSON = function()
 {
     var thisManager = this, surveyName;
     $.getJSON(thisManager.url, function(data){
-        surveyName = data.name;
-        thisManager._parseQuestions(data[constants.CHILDREN], surveyName);
+        thisManager._parseQuestions(data[constants.CHILDREN]);
         thisManager._parseSupportedLanguages();
         thisManager.callback.call(thisManager);
     });
