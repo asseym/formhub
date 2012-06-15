@@ -128,7 +128,7 @@ class ParsedInstance(models.Model):
         return cursor
 
     def to_dict_for_mongo(self):
-        d = dict_for_mongo(self.to_dict(flat=False))
+        d = dict_for_mongo(self.to_dict(flat=True))
         d[self.USERFORM_ID] = u'%s_%s' % (self.instance.user.username,
                 self.instance.xform.id_string)
         return d
