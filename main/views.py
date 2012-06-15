@@ -250,9 +250,7 @@ def api(request, username=None, id_string=None):
         cursor = ParsedInstance.query_mongo(**args)
     except ValueError, e:
         return HttpResponseBadRequest(e.message)
-    # if flat is explicitly false nest, otherwise flatten
-    records = nest_mongo_cursor(cursor) if request.GET.get("flat") == "false" \
-        else flatten_mongo_cursor(cursor)
+    records = [r for r in cursor]
     if 'callback' in request.GET and request.GET.get('callback') != '':
         callback = request.GET.get('callback')
         return HttpResponse("%s(%s)" % (callback, simplejson.dumps(records)), \
