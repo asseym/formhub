@@ -90,7 +90,7 @@ Question.prototype.getLabel = function(language)
   /// load form structure
   $.getJSON(formJSONUrl)
       .success(function(data){
-              parseQuestions(data.children, data.name);
+              parseQuestions(data.children);
               parseLanguages(data.children);
               // load count
               $.getJSON(mongoAPIUrl, {'count': 1})
@@ -310,7 +310,7 @@ function parseQuestions(children, prefix)
     for(idx in children)
     {
       var question = children[idx];
-      newPrefix = prefix + "_" + question.name;
+      newPrefix = prefix? prefix + "_" + question.name:question.name;
       if(question.hasOwnProperty('children') && question.type == "group")
       {
           parseQuestions(question.children, newPrefix);
