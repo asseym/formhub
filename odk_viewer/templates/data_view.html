@@ -27,6 +27,7 @@
 <div id="results"></div>
 <script type="text/javascript" src="/static/js/json2.js"></script>
 <script type="text/javascript" src="/static/js/jquery.cookie.js"></script>
+<script type="text/javascript" src="/static/js/dv.js"></script>
 <script type="text/javascript" src="/static/js/formManagers.js"></script>
 <script type="text/javascript" src="/static/js/jquery.dataTables.js"></script>
 <script type="text/javascript" src="/static/js/pivot.js"></script>
@@ -64,8 +65,11 @@ function loadResponseDataCallback()
 {
     var fields = [];
     var rowLabels = [];
+    var cookiesValid; // check in case whatever columns are in our cookies don't match the form's labels
+    var fieldNames = [];
     for(questionName in formJSONMngr.questions)
     {
+        fieldNames.push(questionName);
         var question = formJSONMngr.questions[questionName];
         var field = {name: questionName};
 
@@ -79,9 +83,16 @@ function loadResponseDataCallback()
         fields.push(field);
     }
     var data = formResponseMngr.getAsPivotJs(fields);
+    // get columns stored in our cookies
     var cookieLabels = getCookieLabels();
     if(cookieLabels)
-        rowLabels = cookieLabels;
+    {
+        // fail if any value in our cookie labels is not in the form fields
+        cookiesValid = !(_.any(cookieLabels, function(item, index, list){
+            return fieldNames.indexOf(item)==-1;
+        }));
+        rowLabels = cookiesValid?cookieLabels:[];
+    }
 
     var instructions = instrcutionTpl.replace('{numquestions}', fields.length);
     //TODO: this need to be re-calculated when we filter, likely in the callback below
