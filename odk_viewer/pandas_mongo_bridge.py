@@ -56,8 +56,8 @@ class WorkBook(object):
         # get mongo data matching username/id_string
         query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
         cursor = xform_instances.find(query)
-        #flatten cursor data
-        data = flatten_mongo_cursor(cursor)
+        data = [r for r in cursor]
+        print "data %s" % data
 
         # for each survey section get mongo db data and create sheet
         for sheet_name, sheet_columns in self.survey_sections.iteritems():
@@ -91,14 +91,14 @@ class WorkBook(object):
                     sheet_name = e.name
                     # if a RepeatingSection, only set the xpath dot notated name as the only column,
                     # data will come as a list which we will then flatten as required
-                    survey_sections[sheet_name] = [xpath_to_dot_notation(e.get_xpath())]
+                    survey_sections[sheet_name] = [e.get_abbreviated_xpath()]
                 #otherwise use default sheet name
                 else:
                     sheet_name = default_sheet_name
                     # for each child add to survey_sections
                     for c in e.children:
                         if isinstance(c, Question) and not question_types_to_exclude(c.type):
-                            survey_sections[sheet_name].append(xpath_to_dot_notation(c.get_xpath()))
+                            survey_sections[sheet_name].append(c.get_abbreviated_xpath())
 
         return survey_sections
 
