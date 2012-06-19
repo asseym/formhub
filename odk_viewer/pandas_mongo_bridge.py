@@ -81,6 +81,8 @@ class WorkBook(object):
         self.username = username
         self.id_string = id_string
 
+        self._build_sheets()
+
     def _append_data_for_sheet_name(self, data, sheet_name):
         """
         Checks if data already has the key "sheet_name", creates if it doesnt and appends the record
