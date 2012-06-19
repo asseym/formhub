@@ -32,6 +32,20 @@ def _get_index_and_key(key):
         index = int(groups[1])
     return index, new_key
 
+def get_groupname_from_xpath(xpath):
+    # check if xpath has an index
+    match = re.match(r"(.+?)\[\d+\]/", xpath)
+    if match:
+        return match.groups()[0]
+    else:
+        #TODO: optimize re to capture a single group
+        # need to strip out the actual question name and leave just the group name
+        match = re.match(r"(.+?/)(.+?)[^/]+$", xpath)
+        if match:
+            return "%s%s" % (match.groups()[0], match.groups()[1])
+        else:
+            return None
+
 class Sheet(object):
     """
     Represents a single row->column data structure essentially a single pandas DataFrame object
@@ -86,7 +100,10 @@ class WorkBook(object):
                 new_key = key
                 for sheet_name in self.survey_sections:
                     # check if key matches any of our sheet names meaning its a repeat
-                    if key.startswith(sheet_name):
+                    group_name = get_groupname_from_xpath(key)
+                    if group_name == sheet_name:
+                        print "group_name %s" % group_name
+                        print "sheet_name %s\n" % sheet_name
                         new_sheet_name = sheet_name
                         index, new_key = _get_index_and_key(key)
 
@@ -99,6 +116,7 @@ class WorkBook(object):
                 # index into the dict of records and append our data there
                 records[new_sheet_name][index].update({new_key: val})
 
+            print "records %s\n" % records
 
             # records now contains a sheet name as the key and number of dicts which we now need to convert to lists
             for sheet_name, records_dict in records.iteritems():
@@ -108,6 +126,7 @@ class WorkBook(object):
                     data[sheet_name].append(record)
 
 
+        print "data %s\n" % data.keys()
         # for each survey section, create sheet
         for sheet_name, sheet_columns in self.survey_sections.iteritems():
             # add a sheet
