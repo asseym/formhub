@@ -14,6 +14,24 @@ def xpath_to_dot_notation(xpath):
     # convert slashes to dots for mongo query
     return re.sub("/", ".", xpath[1:]) # slice remove initial slash i.e. /survey/question to survey/question
 
+def _get_index_and_key(key):
+    """
+    Get unique key and index embedded inside a repeat key that looks like "repeat[2]/item"
+    """
+
+    #the first item does not have a index, it is just "repeat/item" so set defaults to:
+    index = 1
+    new_key = key
+
+    # strip out the index i.e. repeat[2]/item and use it as a key to other items in the same repeat
+    match = re.match(r"(.+?)\[(\d+)\](.+)", key)
+    # the first item does not have a index i.e its simply repeat/item
+    if match:
+        groups = match.groups()
+        new_key = groups[0] + groups[2]
+        index = int(groups[1])
+    return index, new_key
+
 class Sheet(object):
     """
     Represents a single row->column data structure essentially a single pandas DataFrame object
@@ -51,21 +69,60 @@ class WorkBook(object):
         self.sheets = {}
 
         # dictionary of sheet names with a list of columns/xpaths
-        self.survey_sections = self._generate_survey_sections()
+        self._build_survey_sections()
 
         # get mongo data matching username/id_string
         query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
         cursor = xform_instances.find(query)
-        data = [r for r in cursor]
-        print "data %s" % data
+        data = {}
+        # split the records by sheet_name
+        for record in cursor:
+            new_sheet_name = self.default_sheet_name
+            # a dict of the different records we will end up with, grouped by sheet name
+            records = {}
+            for key, val in record.iteritems():
+                index = 1 # used to combine repeats that belong to the same index since they are treated
+                # as separate records
+                new_key = key
+                for sheet_name in self.survey_sections:
+                    # check if key matches any of our sheet names meaning its a repeat
+                    if key.startswith(sheet_name):
+                        new_sheet_name = sheet_name
+                        index, new_key = _get_index_and_key(key)
 
-        # for each survey section get mongo db data and create sheet
+                if not records.has_key(new_sheet_name):
+                    records[new_sheet_name] = {}
+
+                if not records[new_sheet_name].has_key(index):
+                    records[new_sheet_name][index] = {}
+
+                # index into the dict of records and append our data there
+                records[new_sheet_name][index].update({new_key: val})
+
+
+            # records now contains a sheet name as the key and number of dicts which we now need to convert to lists
+            for sheet_name, records_dict in records.iteritems():
+                if not data.has_key(sheet_name):
+                    data[sheet_name] = []
+                for record in records_dict.itervalues():
+                    data[sheet_name].append(record)
+
+
+        # for each survey section, create sheet
         for sheet_name, sheet_columns in self.survey_sections.iteritems():
             # add a sheet
-            sheet = Sheet(data, sheet_columns)
+            sheet = Sheet(data[sheet_name], sheet_columns)
             self.add_sheet(sheet_name, sheet)
 
-    def _generate_survey_sections(self):
+    def _append_data_for_sheet_name(self, data, sheet_name):
+        """
+        Checks if data already has the key "sheet_name", creates if it doesnt and appends the record
+        """
+        if not data.has_key(sheet_name):
+            data[sheet_name] = 0
+
+    def _build_survey_sections(self):
+        self.default_sheet_name = None
         dd = DataDictionary.objects.get(user__username=self.username, id_string=self.id_string)
 
         # the survey element/main sheet
@@ -73,34 +130,31 @@ class WorkBook(object):
         default_sheet_name = None
 
         # dictionary of sheet names with a list of columns/xpaths
-        survey_sections = {}
+        self.survey_sections = {}
 
         # get form elements to split repeats into separate sheets and everything else in the main sheet
         for e in dd.get_survey_elements():
             # check for a Section or sub-classes of
             if isinstance(e, Section):
-                sheet_name = e.name
+                sheet_name = e.get_abbreviated_xpath()
 
                 # if its a survey set the default sheet name
                 if isinstance(e, Survey):
-                    default_sheet_name = sheet_name
-                    survey_sections[default_sheet_name] = []
+                    self.survey_sections[sheet_name] = []
+                    self.default_sheet_name = sheet_name
 
                 # if a repeat we use its name
                 if isinstance(e, RepeatingSection):
-                    sheet_name = e.name
-                    # if a RepeatingSection, only set the xpath dot notated name as the only column,
-                    # data will come as a list which we will then flatten as required
-                    survey_sections[sheet_name] = [e.get_abbreviated_xpath()]
+                    self.survey_sections[sheet_name] = []
                 #otherwise use default sheet name
                 else:
-                    sheet_name = default_sheet_name
-                    # for each child add to survey_sections
-                    for c in e.children:
-                        if isinstance(c, Question) and not question_types_to_exclude(c.type):
-                            survey_sections[sheet_name].append(c.get_abbreviated_xpath())
+                    sheet_name = self.default_sheet_name
 
-        return survey_sections
+                assert(self.default_sheet_name)
+                # for each child add to survey_sections
+                for c in e.children:
+                    if isinstance(c, Question) and not question_types_to_exclude(c.type):
+                        self.survey_sections[sheet_name].append(c.get_abbreviated_xpath())
 
     def add_sheet(self, name, sheet):
         self.sheets[name] = sheet
