@@ -14,7 +14,7 @@ def xpath_to_dot_notation(xpath):
     # convert slashes to dots for mongo query
     return re.sub("/", ".", xpath[1:]) # slice remove initial slash i.e. /survey/question to survey/question
 
-def _get_index_and_key(key):
+def get_index_and_key(key):
     """
     Get unique key and index embedded inside a repeat key that looks like "repeat[2]/item"
     """
@@ -38,8 +38,8 @@ def get_groupname_from_xpath(xpath):
     if match:
         return match.groups()[0]
     else:
-        #TODO: optimize re to capture a single group
-        # need to strip out the actual question name and leave just the group name
+        #TODO: optimize re to capture entire group
+        # need to strip out the question name and leave just the group name
         matches = re.findall(r"(.+?)/", xpath)
         if len(matches) > 0:
             return "/".join(matches)
@@ -106,7 +106,7 @@ class WorkBook(object):
                     print "sheet_name %s\n" % sheet_name
                     if group_name and group_name == sheet_name:
                         new_sheet_name = sheet_name
-                        index, new_key = _get_index_and_key(key)
+                        index, new_key = get_index_and_key(key)
                         break
 
                 if not records.has_key(new_sheet_name):
