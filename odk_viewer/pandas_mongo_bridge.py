@@ -80,60 +80,6 @@ class WorkBook(object):
     def __init__(self, username, id_string):
         self.username = username
         self.id_string = id_string
-        self.sheets = {}
-
-        # dictionary of sheet names with a list of columns/xpaths
-        self._build_survey_sections()
-
-        # get mongo data matching username/id_string
-        query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (username, id_string)}
-        cursor = xform_instances.find(query)
-        data = {}
-        # split the records by sheet_name
-        for record in cursor:
-            new_sheet_name = self.default_sheet_name
-            # a dict of the different records we will end up with, grouped by sheet name
-            records = {}
-            for key, val in record.iteritems():
-                index = 1 # used to combine repeats that belong to the same index since they are treated
-                # as separate records
-                new_key = key
-                for sheet_name in self.survey_sections:
-                    # check if key matches any of our sheet names meaning its a repeat
-                    group_name = get_groupname_from_xpath(key)
-                    print "key %s" % key
-                    print "group_name %s" % group_name
-                    print "sheet_name %s\n" % sheet_name
-                    if group_name and group_name == sheet_name:
-                        new_sheet_name = sheet_name
-                        index, new_key = get_index_and_key(key)
-                        break
-
-                if not records.has_key(new_sheet_name):
-                    records[new_sheet_name] = {}
-
-                if not records[new_sheet_name].has_key(index):
-                    records[new_sheet_name][index] = {}
-
-                # index into the dict of records and append our data there
-                records[new_sheet_name][index].update({new_key: val})
-
-            print "records %s\n" % records
-
-            # records now contains a sheet name as the key and number of dicts which we now need to convert to lists
-            for sheet_name, records_dict in records.iteritems():
-                if not data.has_key(sheet_name):
-                    data[sheet_name] = []
-                for record in records_dict.itervalues():
-                    data[sheet_name].append(record)
-
-
-        print "data %s\n" % data.keys()
-        # for each survey section, create sheet
-        for sheet_name, sheet_columns in self.survey_sections.iteritems():
-            # add a sheet
-            sheet = Sheet(data[sheet_name], sheet_columns)
-            self.add_sheet(sheet_name, sheet)
 
     def _append_data_for_sheet_name(self, data, sheet_name):
         """
@@ -176,6 +122,55 @@ class WorkBook(object):
                 for c in e.children:
                     if isinstance(c, Question) and not question_types_to_exclude(c.type):
                         self.survey_sections[sheet_name].append(c.get_abbreviated_xpath())
+
+    def _build_sheets(self):
+        self.sheets = {}
+
+        # dictionary of sheet names with a list of columns/xpaths
+        self._build_survey_sections()
+
+        # get mongo data matching username/id_string
+        query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (self.username, self.id_string)}
+        cursor = xform_instances.find(query)
+        data = {}
+        # split the records by sheet_name
+        for record in cursor:
+            new_sheet_name = self.default_sheet_name
+            # a dict of the different records we will end up with, grouped by sheet name
+            records = {}
+            for key, val in record.iteritems():
+                index = 1 # used to combine repeats that belong to the same index since they are treated
+                # as separate records
+                new_key = key
+                for sheet_name in self.survey_sections:
+                    # check if key matches any of our sheet names meaning its a repeat
+                    group_name = get_groupname_from_xpath(key)
+                    if group_name and group_name == sheet_name:
+                        new_sheet_name = sheet_name
+                        index, new_key = get_index_and_key(key)
+                        break
+
+                if not records.has_key(new_sheet_name):
+                    records[new_sheet_name] = {}
+
+                if not records[new_sheet_name].has_key(index):
+                    records[new_sheet_name][index] = {}
+
+                # index into the dict of records and append our data there
+                records[new_sheet_name][index].update({new_key: val})
+
+            # records now contains a sheet name as the key and number of dicts which we now need to convert to lists
+            for sheet_name, records_dict in records.iteritems():
+                if not data.has_key(sheet_name):
+                    data[sheet_name] = []
+                for record in records_dict.itervalues():
+                    data[sheet_name].append(record)
+
+        # for each survey section, create sheet
+        for sheet_name, sheet_columns in self.survey_sections.iteritems():
+            # add a sheet
+            sheet = Sheet(data[sheet_name], sheet_columns)
+            self.add_sheet(sheet_name, sheet)
 
     def add_sheet(self, name, sheet):
         self.sheets[name] = sheet
