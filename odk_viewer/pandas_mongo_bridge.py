@@ -40,9 +40,9 @@ def get_groupname_from_xpath(xpath):
     else:
         #TODO: optimize re to capture a single group
         # need to strip out the actual question name and leave just the group name
-        match = re.match(r"(.+?/)(.+?)[^/]+$", xpath)
-        if match:
-            return "%s%s" % (match.groups()[0], match.groups()[1])
+        matches = re.findall(r"(.+?)/", xpath)
+        if len(matches) > 0:
+            return "/".join(matches)
         else:
             return None
 
@@ -101,11 +101,13 @@ class WorkBook(object):
                 for sheet_name in self.survey_sections:
                     # check if key matches any of our sheet names meaning its a repeat
                     group_name = get_groupname_from_xpath(key)
-                    if group_name == sheet_name:
-                        print "group_name %s" % group_name
-                        print "sheet_name %s\n" % sheet_name
+                    print "key %s" % key
+                    print "group_name %s" % group_name
+                    print "sheet_name %s\n" % sheet_name
+                    if group_name and group_name == sheet_name:
                         new_sheet_name = sheet_name
                         index, new_key = _get_index_and_key(key)
+                        break
 
                 if not records.has_key(new_sheet_name):
                     records[new_sheet_name] = {}
