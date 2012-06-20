@@ -2,7 +2,7 @@ from main.tests.test_base import MainTestCase
 from django.core.urlresolvers import reverse
 from odk_logger.views import download_xlsform
 from odk_viewer.xls_writer import XlsWriter
-from odk_viewer.pandas_mongo_bridge import *
+from odk_viewer.pandas_mongo_bridge import get_index_and_key, get_groupname_from_xpath
 
 class TestExports(MainTestCase):
     def test_unique_xls_sheet_name(self):
