@@ -101,23 +101,23 @@ class WorkBook(object):
         # if by any chance the first object encountered is NOT the survey element
         default_sheet_name = None
 
-        # dictionary of sheet names with a list of columns/xpaths
+        # dictionary with sheet_names as key and a dict of the xptah and columns as values
         self.survey_sections = {}
 
         # get form elements to split repeats into separate sheets and everything else in the main sheet
         for e in dd.get_survey_elements():
             # check for a Section or sub-classes of
             if isinstance(e, Section):
-                sheet_name = e.get_abbreviated_xpath()
+                sheet_name = e.name
 
                 # if its a survey set the default sheet name
                 if isinstance(e, Survey):
-                    self.survey_sections[sheet_name] = []
+                    self.survey_sections[sheet_name] = {"xpath": e.get_abbreviated_xpath(), "columns": []}
                     self.default_sheet_name = sheet_name
 
                 # if a repeat we use its name
                 if isinstance(e, RepeatingSection):
-                    self.survey_sections[sheet_name] = []
+                    self.survey_sections[sheet_name] = {"xpath": e.get_abbreviated_xpath(), "columns": []}
                 #otherwise use default sheet name
                 else:
                     sheet_name = self.default_sheet_name
@@ -126,7 +126,7 @@ class WorkBook(object):
                 # for each child add to survey_sections
                 for c in e.children:
                     if isinstance(c, Question) and not question_types_to_exclude(c.type):
-                        self.survey_sections[sheet_name].append(c.get_abbreviated_xpath())
+                        self.survey_sections[sheet_name]["columns"].append(c.get_abbreviated_xpath())
 
     def _build_sheets(self):
         self.sheets = {}
@@ -140,17 +140,17 @@ class WorkBook(object):
         data = {}
         # split the records by sheet_name
         for record in cursor:
-            new_sheet_name = self.default_sheet_name
             # a dict of the different records we will end up with, grouped by sheet name
             records = {}
-            for key, val in record.iteritems():
-                index = 1 # used to combine repeats that belong to the same index since they are treated
-                # as separate records
+            for key, response in record.iteritems():
+                new_sheet_name = self.default_sheet_name
+                index = 1 # used to combine repeats that belong to the same index since they are treated as separate records
                 new_key = key
-                for sheet_name in self.survey_sections:
-                    # check if key matches any of our sheet names meaning its a repeat
-                    group_name = get_groupname_from_xpath(key)
-                    if group_name and group_name == sheet_name:
+                # check if key matches any of our sheet names' xpaths meaning its a repeat
+                for sheet_name, xpath_columns_dict in self.survey_sections.iteritems():
+                    xpath = xpath_columns_dict["xpath"]
+                    group_xpath = get_groupname_from_xpath(key)
+                    if group_xpath and group_xpath == xpath:
                         new_sheet_name = sheet_name
                         index, new_key = get_index_and_key(key)
                         break
@@ -162,7 +162,7 @@ class WorkBook(object):
                     records[new_sheet_name][index] = {}
 
                 # index into the dict of records and append our data there
-                records[new_sheet_name][index].update({new_key: val})
+                records[new_sheet_name][index].update({new_key: response})
 
             # records now contains a sheet name as the key and number of dicts which we now need to convert to lists
             for sheet_name, records_dict in records.iteritems():
@@ -172,8 +172,9 @@ class WorkBook(object):
                     data[sheet_name].append(record)
 
         # for each survey section, create sheet
-        for sheet_name, sheet_columns in self.survey_sections.iteritems():
+        for sheet_name, xpath_columns_dict in self.survey_sections.iteritems():
             # add a sheet
+            sheet_columns = xpath_columns_dict["columns"]
             sheet = Sheet(data[sheet_name], sheet_columns)
             self.add_sheet(sheet_name, sheet)
 
@@ -206,8 +207,8 @@ class XLSWorkbookExporter(WorkbookExporter):
 
     def save_to_file(self, file_path):
         writer = ExcelWriter(file_path)
-        # foreach sheet dataframe
         for sheet_name, sheet in self._workbook.sheets.iteritems():
+            #TODO: ensure sheet_name is a valid xls sheet name i.e. max length of 31, characters should be valid from formhub's validation
             sheet.dataframe.to_excel(writer, sheet_name)
         writer.save()
 
