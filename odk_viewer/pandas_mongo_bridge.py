@@ -4,6 +4,7 @@ from pyxform.section import Section, RepeatingSection
 from pyxform.survey import Survey
 from pyxform.question import Question
 from pandas import *
+from pandas.io.parsers import ExcelWriter
 from utils.export_tools import question_types_to_exclude
 from odk_viewer.models.parsed_instance import flatten_mongo_cursor
 import re
@@ -77,6 +78,7 @@ class WorkBook(object):
     """
     XLS Workbook-like structure with a number of sheets
     """
+    #TODO: add a function that can be used by subclasses to build a workbook from filtered results
     def __init__(self, username, id_string):
         self.username = username
         self.id_string = id_string
@@ -96,6 +98,7 @@ class WorkBook(object):
 
         # the survey element/main sheet
         #TODO: find a way to set this here instead of waiting for it to be caught in the loop, bad things could happen
+        # if by any chance the first object encountered is NOT the survey element
         default_sheet_name = None
 
         # dictionary of sheet names with a list of columns/xpaths
@@ -188,12 +191,29 @@ class WorkbookExporter(object):
     """
     Base class for data exporters
     """
-    def __init(self):
-        pass
+    def __init__(self, workbook):
+        self._workbook = workbook
+
+    def save_to_file(self, file_path):
+       pass
+
+class XLSWorkbookExporter(WorkbookExporter):
+    """
+    XLS file exporter
+    """
+    def __init__(self, workbook):
+        WorkbookExporter.__init__(self, workbook)
+
+    def save_to_file(self, file_path):
+        writer = ExcelWriter(file_path)
+        # foreach sheet dataframe
+        for sheet_name, sheet in self._workbook.sheets.iteritems():
+            sheet.dataframe.to_excel(writer, sheet_name)
+        writer.save()
 
 class CSVWorkbookExporter(WorkbookExporter):
     """
     CSV file exporter
     """
-    def __init__(self):
-        pass
+    def __init__(self, workbook):
+        WorkbookExporter.__init__(self, workbook)
