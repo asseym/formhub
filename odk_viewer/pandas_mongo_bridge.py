@@ -104,6 +104,9 @@ class WorkBook(object):
         # dictionary with sheet_names as key and a dict of the xptah and columns as values
         self.survey_sections = {}
 
+        # maintain a separate list of sheet names so we can determine the order on export
+        self.sheet_names_list = []
+
         # get form elements to split repeats into separate sheets and everything else in the main sheet
         for e in dd.get_survey_elements():
             # check for a Section or sub-classes of
@@ -113,11 +116,13 @@ class WorkBook(object):
                 # if its a survey set the default sheet name
                 if isinstance(e, Survey):
                     self.survey_sections[sheet_name] = {"xpath": e.get_abbreviated_xpath(), "columns": []}
+                    self.sheet_names_list.append(sheet_name)
                     self.default_sheet_name = sheet_name
 
                 # if a repeat we use its name
                 if isinstance(e, RepeatingSection):
                     self.survey_sections[sheet_name] = {"xpath": e.get_abbreviated_xpath(), "columns": []}
+                    self.sheet_names_list.append(sheet_name)
                 #otherwise use default sheet name
                 else:
                     sheet_name = self.default_sheet_name
@@ -133,6 +138,8 @@ class WorkBook(object):
 
         # dictionary of sheet names with a list of columns/xpaths
         self._build_survey_sections()
+
+        print "survey_sections %s\n" % self.survey_sections
 
         # get mongo data matching username/id_string
         query = {ParsedInstance.USERFORM_ID: u'%s_%s' % (self.username, self.id_string)}
@@ -188,7 +195,7 @@ class WorkBook(object):
         return self.sheets[name]
 
 
-class WorkbookExporter(object):
+class WorkbookExporter:
     """
     Base class for data exporters
     """
@@ -207,7 +214,8 @@ class XLSWorkbookExporter(WorkbookExporter):
 
     def save_to_file(self, file_path):
         writer = ExcelWriter(file_path)
-        for sheet_name, sheet in self._workbook.sheets.iteritems():
+        for sheet_name in self._workbook.sheet_names_list:
+            sheet = self._workbook.sheets[sheet_name]
             #TODO: ensure sheet_name is a valid xls sheet name i.e. max length of 31, characters should be valid from formhub's validation
             sheet.dataframe.to_excel(writer, sheet_name)
         writer.save()
