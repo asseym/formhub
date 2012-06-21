@@ -32,6 +32,8 @@ from xls_writer import XlsWriter
 from odk_logger.views import download_jsonform
 # TODO: using from main.views import api breaks the application, why?
 import main
+from odk_viewer.pandas_mongo_bridge import WorkBook, XLSPandasExporter
+from django.core.files.temp import NamedTemporaryFile
 
 def encode(time_str):
     time = strptime(time_str, "%Y_%m_%d_%H_%M_%S")
@@ -170,22 +172,21 @@ def xls_export(request, username, id_string):
     xform = get_object_or_404(XForm, id_string=id_string, user=owner)
     if not has_permission(xform, owner, request):
         return HttpResponseForbidden('Not shared.')
-    valid, dd = dd_for_params(id_string, owner, request)
-    if not valid: return dd
-    ddw = XlsWriter()
-    ddw.set_data_dictionary(dd)
-    temp_file = ddw.save_workbook_to_file()
+    # create a workbook object from the username/id_string
+    workbook = WorkBook(username, id_string)
+    # create exporter using the workbook
+    xlsExporter = XLSPandasExporter(workbook)
+    temp_file = NamedTemporaryFile(suffix=".xls")
+    xlsExporter.save_to_file(temp_file.name)
     if request.GET.get('raw'):
         id_string = None
     response = response_with_mimetype_and_name('vnd.ms-excel', id_string,
         extension='xls')
-    response.write(temp_file.getvalue())
+    response.write(temp_file.read())
     temp_file.seek(0, os.SEEK_END)
     response['Content-Length'] = temp_file.tell()
     temp_file.close()
     return response
-    #return HttpResponse("Done")
-
 
 def zip_export(request, username, id_string):
     owner = get_object_or_404(User, username=username)
