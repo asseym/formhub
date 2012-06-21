@@ -183,9 +183,9 @@ class WorkBook(object):
             # add a sheet
             sheet_columns = xpath_columns_dict["columns"]
             sheet = Sheet(data[sheet_name], sheet_columns)
-            self.add_sheet(sheet_name, sheet)
+            self._add_sheet(sheet_name, sheet)
 
-    def add_sheet(self, name, sheet):
+    def _add_sheet(self, name, sheet):
         self.sheets[name] = sheet
 
     def get_num_sheets(self):
