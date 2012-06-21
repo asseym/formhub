@@ -195,14 +195,14 @@ class WorkBook(object):
         return self.sheets[name]
 
 
-class WorkbookExporter:
+class AbstractPandasExporter:
     """
     Base class for data exporters
     """
     def __init__(self, workbook):
         self._workbook = workbook
 
-class XLSPandasExporter(WorkbookExporter):
+class XLSPandasExporter(AbstractPandasExporter):
     """
     Exports a number of pandas dataframes into an xls file
     """
@@ -218,7 +218,7 @@ class XLSPandasExporter(WorkbookExporter):
             sheet.dataframe.to_excel(writer, sheet_name)
         writer.save()
 
-class CSVPandasExporter(WorkbookExporter):
+class CSVPandasExporter(AbstractPandasExporter):
     """
     CSV file exporter
     """
