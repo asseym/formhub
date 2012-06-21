@@ -202,25 +202,23 @@ class WorkbookExporter:
     def __init__(self, workbook):
         self._workbook = workbook
 
-    def save_to_file(self, file_path):
-       pass
-
-class XLSWorkbookExporter(WorkbookExporter):
+class XLSPandasExporter(WorkbookExporter):
     """
-    XLS file exporter
+    Exports a number of pandas dataframes into an xls file
     """
     def __init__(self, workbook):
         WorkbookExporter.__init__(self, workbook)
 
     def save_to_file(self, file_path):
         writer = ExcelWriter(file_path)
+        # use sheet_names_list to have the sheets ordered appropriately
         for sheet_name in self._workbook.sheet_names_list:
             sheet = self._workbook.sheets[sheet_name]
             #TODO: ensure sheet_name is a valid xls sheet name i.e. max length of 31, characters should be valid from formhub's validation
             sheet.dataframe.to_excel(writer, sheet_name)
         writer.save()
 
-class CSVWorkbookExporter(WorkbookExporter):
+class CSVPandasExporter(WorkbookExporter):
     """
     CSV file exporter
     """
