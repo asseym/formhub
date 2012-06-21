@@ -207,7 +207,7 @@ class XLSPandasExporter(AbstractPandasExporter):
     Exports a number of pandas dataframes into an xls file
     """
     def __init__(self, workbook):
-        WorkbookExporter.__init__(self, workbook)
+        AbstractPandasExporter.__init__(self, workbook)
 
     def save_to_file(self, file_path):
         writer = ExcelWriter(file_path)
@@ -223,4 +223,4 @@ class CSVPandasExporter(AbstractPandasExporter):
     CSV file exporter
     """
     def __init__(self, workbook):
-        WorkbookExporter.__init__(self, workbook)
+        AbstractPandasExporter.__init__(self, workbook)
